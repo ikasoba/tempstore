@@ -1,22 +1,27 @@
+export type Awaitable<T> = PromiseLike<T> | T;
+
 export interface SetOption {
   expire?: number;
 }
 
 export interface DataProvider<V> {
-  set(key: string, value: V, option?: SetOption): void;
-  get(key: string): null | { value: V; option?: SetOption };
-  delete(key: string): void;
+  set(key: string, value: V, option?: SetOption): Awaitable<void>;
+  get(key: string): Awaitable<null | { value: V; option?: SetOption }>;
+  delete(key: string): Awaitable<void>;
+  keys(): Awaitable<string[]>;
+  values(): Awaitable<V[]>;
+  entries(): Awaitable<[string, V][]>;
 }
 
 export class TempStore<V> {
   constructor(private provider: DataProvider<V>) {}
 
-  set(key: string, value: V, option?: SetOption) {
-    this.provider.set(key, value, option);
+  async set(key: string, value: V, option?: SetOption) {
+    await this.provider.set(key, value, option);
   }
 
-  get(key: string): null | V {
-    var res = this.provider.get(key);
+  async get(key: string): Promise<null | V> {
+    var res = await this.provider.get(key);
 
     if (res?.option?.expire && res.option.expire <= Date.now()) {
       this.provider.delete(key);
@@ -28,5 +33,17 @@ export class TempStore<V> {
 
   delete(key: string) {
     this.provider.delete(key);
+  }
+
+  async keys() {
+    return this.provider.keys();
+  }
+
+  async values() {
+    return this.provider.values();
+  }
+
+  async entries() {
+    return this.provider.entries();
   }
 }

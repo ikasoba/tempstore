@@ -1,4 +1,4 @@
-import { DataProvider, SetOption } from "./index.js";
+import { Awaitable, DataProvider, SetOption } from "./index.js";
 import fs from "fs/promises";
 
 export type JsonValues = null | boolean | string | number;
@@ -104,16 +104,16 @@ export class JSONProvider implements DataProvider<JSONProviderValue> {
     };
   }
 
-  set(
+  async set(
     key: string,
     value: JSONProviderValue,
     option?: SetOption | undefined
-  ): void {
+  ) {
     this.database[key] = this.serialize(value, option) as any;
 
-    fs.writeFile(this.path, JSON.stringify(this.database), "utf-8").catch(
-      (e) => (fs.writeFile(this.path, "{}", "utf-8"), "{}")
-    );
+    await fs
+      .writeFile(this.path, JSON.stringify(this.database), "utf-8")
+      .catch((e) => (fs.writeFile(this.path, "{}", "utf-8"), "{}"));
   }
 
   get(
@@ -126,5 +126,26 @@ export class JSONProvider implements DataProvider<JSONProviderValue> {
 
   delete(key: string): void {
     delete this.database[key];
+  }
+
+  keys() {
+    return Object.keys(this.database);
+  }
+
+  values() {
+    return Object.values(this.database)
+      .filter((x): x is typeof x & {} => x != undefined)
+      .map((x) => this.deserialize(x).value);
+  }
+
+  entries() {
+    return Object.entries(this.database)
+      .filter(
+        (x): x is [(typeof x)[0], (typeof x)[1] & {}] => x[1] != undefined
+      )
+      .map(
+        ([k, v]) =>
+          [k, this.deserialize(v).value] as [string, JSONProviderValue]
+      );
   }
 }
