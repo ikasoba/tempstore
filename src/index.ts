@@ -1,4 +1,4 @@
-import { JSONProvider } from "./JSONProvider";
+import { JSONProvider } from "./JSONProvider.js";
 
 export interface SetOption {
   expire?: number;
