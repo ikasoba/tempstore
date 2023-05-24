@@ -1,18 +1,12 @@
 import { DataProvider, SetOption } from "./index.js";
 import fs from "fs/promises";
 
-export type JsonValues =
-  | null
-  | boolean
-  | string
-  | number
-  | JsonValues[]
-  | { [k: string]: JsonValues };
+export type JsonValues = null | boolean | string | number;
 
 export type Value =
   | {
       type: "primitive";
-      value: JsonValues;
+      value: JsonValues | Value[] | { [k: string]: Value };
       option?: SetOption;
     }
   | {
@@ -31,7 +25,12 @@ export interface DataBase {
   [k: string]: Value | undefined;
 }
 
-export type JSONProviderValue = JsonValues | Date | ArrayBuffer;
+export type JSONProviderValue =
+  | JsonValues
+  | Date
+  | ArrayBuffer
+  | JSONProviderValue[]
+  | { [k: string]: JSONProviderValue };
 
 export class JSONProvider implements DataProvider<JSONProviderValue> {
   static async create(path: string) {
@@ -45,43 +44,50 @@ export class JSONProvider implements DataProvider<JSONProviderValue> {
 
   constructor(public path: string, private database: DataBase) {}
 
-  set(
-    key: string,
-    value: JSONProviderValue,
-    option?: SetOption | undefined
-  ): void {
+  serialize(value: JSONProviderValue, option?: SetOption) {
     if (value instanceof Date) {
-      this.database[key] = {
+      return {
         type: "date",
         date: value.toJSON(),
         option: option,
       };
     } else if (value instanceof ArrayBuffer) {
-      this.database[key] = {
+      return {
         type: "buffer",
         buf: Buffer.from(value).toString("base64"),
         option: option,
       };
     } else {
-      this.database[key] = {
+      return {
         type: "primitive",
         value: value,
         option: option,
       };
     }
-
-    fs.writeFile(this.path, JSON.stringify(this.database), "utf-8").catch(
-      (e) => (fs.writeFile(this.path, "{}", "utf-8"), "{}")
-    );
   }
 
-  get(
-    key: string
-  ): { value: JSONProviderValue; option?: SetOption | undefined } | null {
-    const value = this.database[key];
-
+  deserialize(value: Value): {
+    value: JSONProviderValue;
+    option?: SetOption | undefined;
+  } {
     if (value?.type == "primitive") {
-      return { value: value.value, option: value.option };
+      if (typeof value.value == "object" && !(value.value instanceof Array)) {
+        const o: { [k: string]: JSONProviderValue } = {};
+        for (const key in value.value) {
+          o[key] = this.deserialize(value.value[key]).value;
+        }
+        return { value: o, option: value.option };
+      } else if (value.value instanceof Array) {
+        return {
+          value: value.value.map((x) => this.deserialize(x).value),
+          option: value.option,
+        };
+      } else {
+        return {
+          value: value.value,
+          option: value.option,
+        };
+      }
     } else if (value?.type == "buffer") {
       return {
         value: Buffer.from(value.buf, "base64"),
@@ -93,8 +99,29 @@ export class JSONProvider implements DataProvider<JSONProviderValue> {
         option: value.option,
       };
     }
+    return {
+      value: null,
+    };
+  }
 
-    return null;
+  set(
+    key: string,
+    value: JSONProviderValue,
+    option?: SetOption | undefined
+  ): void {
+    this.database[key] = this.serialize(value, option) as any;
+
+    fs.writeFile(this.path, JSON.stringify(this.database), "utf-8").catch(
+      (e) => (fs.writeFile(this.path, "{}", "utf-8"), "{}")
+    );
+  }
+
+  get(
+    key: string
+  ): { value: JSONProviderValue; option?: SetOption | undefined } | null {
+    const value = this.database[key];
+
+    return value != null ? this.deserialize(value) : null;
   }
 
   delete(key: string): void {

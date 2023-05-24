@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "@ikasoba000/tempstore",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "",
   "main": "src/index.js",
   "scripts": {
