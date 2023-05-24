@@ -1,4 +1,5 @@
 {
+  "type": "module",
   "name": "@ikasoba000/tempstore",
   "version": "1.0.1",
   "description": "",
