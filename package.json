@@ -1,9 +1,13 @@
 {
   "type": "module",
   "name": "@ikasoba000/tempstore",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "",
   "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./*": "./src/*"
+  },
   "scripts": {
     "prepublish": "tsc --build"
   },
