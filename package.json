@@ -1,6 +1,6 @@
 {
   "name": "@ikasoba000/tempstore",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "",
   "main": "src/index.js",
   "scripts": {
@@ -12,5 +12,5 @@
   },
   "keywords": [],
   "author": "github.com/ikasoba000",
-  "license": "ISC"
+  "license": "MIT"
 }
