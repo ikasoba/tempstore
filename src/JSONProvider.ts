@@ -44,7 +44,7 @@ export class JSONProvider implements DataProvider<JSONProviderValue> {
 
   constructor(public path: string, private database: DataBase) {}
 
-  serialize(value: JSONProviderValue, option?: SetOption) {
+  serialize(value: JSONProviderValue, option?: SetOption): Value {
     if (value instanceof Date) {
       return {
         type: "date",
@@ -58,6 +58,20 @@ export class JSONProvider implements DataProvider<JSONProviderValue> {
         option: option,
       };
     } else {
+      if (value instanceof Array) {
+        return {
+          type: "primitive",
+          value: value.map((x) => this.serialize(x)),
+          option: option,
+        };
+      } else if (value && typeof value == "object") {
+        return {
+          type: "primitive",
+          value: Object.fromEntries(
+            Object.entries(value).map(([k, v]) => [k, this.serialize(v)])
+          ),
+        };
+      }
       return {
         type: "primitive",
         value: value,
